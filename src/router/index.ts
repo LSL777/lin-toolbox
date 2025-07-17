@@ -29,6 +29,22 @@ const router: Router = createRouter({
                         name: 'json工具'
                     },
                     component: () => import('@/views/json/JsonTool.vue')
+                },
+                {
+                    path: '/test',
+                    name: 'test',
+                    meta: {
+                        name: '测试页面'
+                    },
+                    component: () => import('@/views/test/Test.vue')
+                },
+                {
+                    path: '/regex',
+                    name: 'regex',
+                    meta: {
+                        name: '正则表达式'
+                    },
+                    component: () => import('@/views/regex/Regex.vue')
                 }
             ]
         }

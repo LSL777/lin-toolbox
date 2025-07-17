@@ -1,9 +1,16 @@
-mod random_util;
+pub mod utils {
+    pub mod random_util;
+    pub mod snowflake;
+}
 
+use std::sync::Arc;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use crate::random_util::{
+use utils::random_util::{
     build_bank_info, build_id_card, build_name, build_phone, build_table_data,
 };
+
+use utils::snowflake::generate_snowflake_id;
+
 use tauri::{
     image::Image,
     menu::{IconMenuItem, Menu},
@@ -11,16 +18,21 @@ use tauri::{
     Manager,
 };
 
+pub use utils::snowflake::Snowflake;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(Arc::new(Snowflake::new(1, 2)))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             build_phone,
             build_id_card,
             build_name,
             build_bank_info,
-            build_table_data
+            build_table_data,
+            generate_snowflake_id
         ])
         .setup(|app| {
             let exit_icon_image = Image::from_bytes(include_bytes!("../icons/exit.png")).unwrap();
@@ -33,7 +45,8 @@ pub fn run() {
                 true,
                 Some(show_hide_icon_image),
                 None::<&str>,
-            ).unwrap();
+            )
+            .unwrap();
             let quit_i = IconMenuItem::with_id(
                 app,
                 "quit",

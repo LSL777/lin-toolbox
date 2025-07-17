@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import {WebviewWindow} from '@tauri-apps/api/webviewWindow';
-import {ref} from 'vue';
-import {nextTick, onMounted} from 'vue'
+import {nextTick, onMounted, ref} from 'vue';
 
 const windowTitle = ref("Lin's Toolbox");
 const appWindow = WebviewWindow.getCurrent()
@@ -33,8 +32,7 @@ const handleCloseWin = async () => {
 onMounted(() => {
   // 监听最大化
   appWindow.onResized(async () => {
-    const isMax = await appWindow.isMaximized()
-    windowMaximized.value = isMax
+    windowMaximized.value = await appWindow.isMaximized()
   })
   // 初始化时同步一次
   appWindow.isMaximized().then(isMax => {
