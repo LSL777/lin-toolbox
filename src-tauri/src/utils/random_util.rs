@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use rand::Rng;
-use std::string::ToString;
 use serde::Serialize;
+use std::string::ToString;
 
 #[derive(Serialize)]
 pub struct TableData {
@@ -13,7 +13,13 @@ pub struct TableData {
 }
 
 impl TableData {
-    fn new(name: String, phone: String, id_card: String, bank_number: String, bank_name: String) -> Self {
+    fn new(
+        name: String,
+        phone: String,
+        id_card: String,
+        bank_number: String,
+        bank_name: String,
+    ) -> Self {
         Self {
             name,
             phone,
@@ -45,18 +51,12 @@ pub async fn build_table_data(count: i8) -> Vec<TableData> {
 /// 手机号前缀
 const PREFIXES: [&str; 59] = [
     // 13x
-    "130", "131", "132", "133", "134", "135", "136", "137", "138", "139",
-    // 14x
-    "140", "141", "144", "145", "146", "147", "148", "149",
-    // 15x
-    "150", "151", "152", "153", "155", "156", "157", "158", "159",
-    // 16x
-    "162", "165", "166", "167",
-    // 17x
-    "170", "171", "172", "173", "174", "175", "176", "177", "178",
-    // 18x
-    "180", "181", "182", "183", "184", "185", "186", "187", "188", "189",
-    // 19x
+    "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", // 14x
+    "140", "141", "144", "145", "146", "147", "148", "149", // 15x
+    "150", "151", "152", "153", "155", "156", "157", "158", "159", // 16x
+    "162", "165", "166", "167", // 17x
+    "170", "171", "172", "173", "174", "175", "176", "177", "178", // 18x
+    "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", // 19x
     "190", "191", "192", "193", "195", "196", "197", "198", "199",
 ];
 
@@ -64,7 +64,9 @@ const PREFIXES: [&str; 59] = [
 pub fn build_phone() -> String {
     let mut rng = rand::rng();
     let prefix = PREFIXES[rng.random_range(0..PREFIXES.len())];
-    let suffix: String = (0..8).map(|_| rng.random_range(0..=9).to_string()).collect();
+    let suffix: String = (0..8)
+        .map(|_| rng.random_range(0..=9).to_string())
+        .collect();
     format!("{}{}", prefix, suffix)
 }
 
@@ -471,8 +473,6 @@ fn calculate_check_code(id_card_17: &str) -> String {
     CHECK_CODES[mod_num as usize].to_string()
 }
 
-
-
 /// 姓氏数组
 const SURNAME: [&str; 483] = [
     "赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈", "褚", "卫", "蒋", "沈", "韩", "杨",
@@ -509,6 +509,7 @@ const SURNAME: [&str; 483] = [
     "梁丘", "左丘", "东门", "西门",
 ];
 
+/// 名字选词
 const CHAR_NAMES: [&str; 609] = [
     " ", "权", "羽", "月", "蒙", "朋", "略", "奎", "韵", "嘉", "方", "紫", "淼", "姗", "春", "炳",
     "纯", "麒", "彩", "洺", "顺", "凝", "宣", "辰", "诒", "家", "川", "恒", "谨", "可", "山", "璟",
@@ -635,7 +636,6 @@ fn get_banks() -> Vec<BankInfo> {
     ]
 }
 
-
 /// 随机生成银行卡信息
 #[tauri::command]
 pub fn build_bank_info() -> (String, String) {
@@ -648,19 +648,12 @@ pub fn build_bank_info() -> (String, String) {
 
     let card_number = generate_valid_card_number_with_prefix(prefix, bank.length);
     (card_number, bank.bank_name.to_owned())
-
 }
 
 fn generate_valid_card_number_with_prefix(prefix: &str, total_length: usize) -> String {
-    let prefix_digits: Vec<u32> = prefix
-        .chars()
-        .filter_map(|c| c.to_digit(10))
-        .collect();
+    let prefix_digits: Vec<u32> = prefix.chars().filter_map(|c| c.to_digit(10)).collect();
 
-    assert!(
-        prefix_digits.len() < total_length,
-        "前缀长度必须小于总长度"
-    );
+    assert!(prefix_digits.len() < total_length, "前缀长度必须小于总长度");
 
     let mut rng = rand::rng();
     let mut digits = prefix_digits;
@@ -679,51 +672,57 @@ fn generate_valid_card_number_with_prefix(prefix: &str, total_length: usize) -> 
 }
 
 fn calculate_check_digit(digits: &[u32]) -> u32 {
-    let sum: u32 = digits.iter().rev().enumerate().map(|(i, &d)| {
-        let doubled = if i % 2 == 0 {
-            // 注意这里索引与校验时相反
-            d * 2
-        } else {
-            d
-        };
+    let sum: u32 = digits
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, &d)| {
+            let doubled = if i % 2 == 0 {
+                // 注意这里索引与校验时相反
+                d * 2
+            } else {
+                d
+            };
 
-        if doubled > 9 {
-            doubled - 9
-        } else {
-            doubled
-        }
-    }).sum();
+            if doubled > 9 {
+                doubled - 9
+            } else {
+                doubled
+            }
+        })
+        .sum();
 
     (10 - (sum % 10)) % 10
 }
 
 #[allow(dead_code)]
 fn is_valid_card_number(card_number: &str) -> bool {
-    let digits: Vec<u32> = card_number
-        .chars()
-        .filter_map(|c| c.to_digit(10))
-        .collect();
+    let digits: Vec<u32> = card_number.chars().filter_map(|c| c.to_digit(10)).collect();
 
     if digits.len() < 2 {
         return false;
     }
 
-    let sum: u32 = digits.iter().rev().enumerate().map(|(i, &d)| {
-        if i % 2 == 1 {
-            let doubled = d * 2;
-            if doubled > 9 {
-                doubled - 9
+    let sum: u32 = digits
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, &d)| {
+            if i % 2 == 1 {
+                let doubled = d * 2;
+                if doubled > 9 {
+                    doubled - 9
+                } else {
+                    doubled
+                }
             } else {
-                doubled
+                d
             }
-        } else {
-            d
-        }
-    }).sum();
+        })
+        .sum();
 
     sum % 10 == 0
 }
-
 
 #[cfg(test)]
 mod tests {

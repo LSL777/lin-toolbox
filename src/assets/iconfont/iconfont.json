@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "2552778",
+      "name": "测试",
+      "font_class": "ceshi",
+      "unicode": "e6ac",
+      "unicode_decimal": 59052
+    },
+    {
+      "icon_id": "19113300",
+      "name": "正则表达式_1",
+      "font_class": "zhengzebiaodashi_1",
+      "unicode": "e758",
+      "unicode_decimal": 59224
+    },
+    {
+      "icon_id": "1367317",
+      "name": "复制",
+      "font_class": "fuzhi",
+      "unicode": "e60d",
+      "unicode_decimal": 58893
+    },
+    {
       "icon_id": "657506",
       "name": "信息",
       "font_class": "xinxi",

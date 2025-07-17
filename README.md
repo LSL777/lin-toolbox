@@ -1,16 +1,63 @@
-# Tauri + Vue + TypeScript
+<div align="center">
+  <img src="https://img.shields.io/badge/TypeScript-blue?logo=Typescript&style=flat&logoColor=fff">
+  <img src="https://img.shields.io/badge/Vue3-35495E?logo=vue.js&logoColor=4FC08D">
+  <img src="https://img.shields.io/badge/Tauri-24C8DB?logo=tauri&logoColor=FFC131">
+  <img src="https://img.shields.io/badge/Rust-c57c54?logo=rust&logoColor=E34F26">
+  <img src="https://img.shields.io/badge/Vite6-35495E?logo=vite&logoColor=41D1FF">
+  <img src="https://img.shields.io/badge/npm-909090?logo=npm&logoColor=FFC131">
+</div>
+## 🌐 支持平台
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+| 平台 | 支持版本 |
+|------|---------|
+| Windows | Windows 10, Windows 11 |
 
-## Recommended IDE Setup
+## 📝 项目介绍
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+lin-toolbox 是一款基于 Tauri、Vite 6、Vue 3 和 TypeScript 构建工具箱，写这个的目的是不想浏览器开一排在线工具网站窗口标签。
 
-## Type Support For `.vue` Imports in TS
+## 🛠️ 技术栈
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+- **Tauri**: 为本项目提供了一款轻量级的、高性能的桌面应用容器，使得我们可以使用前端技术栈来开发跨平台的桌面应用。Tauri 的设计哲学是在保证安全性的前提下，尽可能减少资源占用。
+- **Vite 6**: Vite 是一个现代化的前端构建工具，它利用原生 ES 模块导入的能力来提供一个快速的开发服务器，与此同时，它也为生产环境打包提供了强大的支持。Vite 6 是其最新的版本，带来了更多的优化和特性。
+- **Vue 3**: Vue 3 是一个渐进式JavaScript框架，用于构建用户界面。它的组合式API、更好的TypeScript集成和对移动端的优化使得开发复杂的单页应用变得更加简单和高效。
+- **TypeScript**: TypeScript 是 JavaScript 的一个超集，它在 JavaScript 的基础上增加了类型系统。这让我们能够在开发过程中捕获更多的错误，并且提供更好的编辑器支持。
 
-1. Run `Extensions: Show Built-in Extensions` from VS Code's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VS Code window by running `Developer: Reload Window` from the command palette.
+## 🖼️ 项目预览
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
+
+
+
+## ✨ 已完成功能
+
+| 功能分类   | 功能描述       | 功能描述 |
+|--------|------------| -------- |
+| JSON工具 | 格式化        | ✅ 已完成 |
+|        | 校验         | ✅ 已完成 |
+|        | 压缩         | ✅ 已完成 |
+|        | 转Java Bean | ✅ 已完成 |
+| 随机生成数据 | 生成姓名       | ✅ 已完成 |
+|        | 生成身份证      | ✅ 已完成 |
+|        | 生成手机号      | ✅ 已完成 |
+|        | 生成银行卡信息    | ✅ 已完成 |
+| 正则表达式  | 正则表达式校验    | ✅ 已完成 |
+
+## 📥 安装与运行
+
+```bash
+# 克隆项目
+git clone hhttps://github.com/LSL777/lin-toolbox.git
+
+# 进入项目目录
+cd lin-toolbox
+
+# 安装依赖
+npm install
+
+# 运行开发服务器
+npm run tauri dev
+
+# 构建生产版本
+npm run tauri build
+```
+

@@ -4,7 +4,7 @@
       <img src="../assets/lyy.png" alt="">
       <h3 style="text-align: center;color: #555555">无聊工具箱</h3>
     </div>
-    <el-menu :default-active="$route.path" router :collapse="isCollapse" background-color="#F3E9FF"
+    <el-menu :default-active="'/build_info'" router :collapse="isCollapse" background-color="#F3E9FF"
              text-color="#fff"
              active-text-color="#8A77C1">
       <el-menu-item index="/build_info">
@@ -18,6 +18,18 @@
           <IconFont name="json"/>
         </el-icon>
         <span>JSON工具</span>
+      </el-menu-item>
+      <el-menu-item index="/regex">
+        <el-icon>
+          <IconFont name="zhengzebiaodashi_1"/>
+        </el-icon>
+        <span>正则表达式</span>
+      </el-menu-item>
+      <el-menu-item index="/test">
+        <el-icon>
+          <IconFont name="ceshi"/>
+        </el-icon>
+        <span>测试页面</span>
       </el-menu-item>
     </el-menu>
   </div>
