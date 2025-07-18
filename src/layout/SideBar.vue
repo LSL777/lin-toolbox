@@ -25,6 +25,12 @@
         </el-icon>
         <span>正则表达式</span>
       </el-menu-item>
+      <el-menu-item index="/network">
+        <el-icon>
+          <IconFont name="jieruwangluodaojisuanji"/>
+        </el-icon>
+        <span>网络工具</span>
+      </el-menu-item>
       <el-menu-item index="/test">
         <el-icon>
           <IconFont name="ceshi"/>

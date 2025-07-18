@@ -1,6 +1,7 @@
 pub mod utils {
     pub mod random_util;
     pub mod snowflake;
+    pub mod network_util;
 }
 
 use std::sync::Arc;
@@ -10,6 +11,7 @@ use utils::random_util::{
 };
 
 use utils::snowflake::generate_snowflake_id;
+use utils::network_util::is_port_open;
 
 use tauri::{
     image::Image,
@@ -32,7 +34,8 @@ pub fn run() {
             build_name,
             build_bank_info,
             build_table_data,
-            generate_snowflake_id
+            generate_snowflake_id,
+            is_port_open
         ])
         .setup(|app| {
             let exit_icon_image = Image::from_bytes(include_bytes!("../icons/exit.png")).unwrap();

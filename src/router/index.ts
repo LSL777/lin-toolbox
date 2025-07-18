@@ -45,6 +45,14 @@ const router: Router = createRouter({
                         name: '正则表达式'
                     },
                     component: () => import('@/views/regex/Regex.vue')
+                },
+                {
+                    path: '/network',
+                    name: 'network',
+                    meta: {
+                        name: '网络工具'
+                    },
+                    component: () => import('@/views/network/Network.vue')
                 }
             ]
         }
