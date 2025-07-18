@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "39694253",
+      "name": "接入网络",
+      "font_class": "jieruwangluodaojisuanji",
+      "unicode": "e7c1",
+      "unicode_decimal": 59329
+    },
+    {
       "icon_id": "2552778",
       "name": "测试",
       "font_class": "ceshi",

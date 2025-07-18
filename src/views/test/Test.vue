@@ -24,12 +24,29 @@ const startFlashingTrayIcon = () => {
 
 
 const testNotice = () => {
-  sendNotification({ title: 'Tauri', body: 'Tauri is awesome!' });
+  sendNotification({title: 'Tauri', body: 'Tauri is awesome!'});
 }
 const snowId = ref()
 
 const getSnowId = async () => {
   snowId.value = await invoke("generate_snowflake_id")
+}
+
+interface NetResult {
+  result: Boolean;
+  reason: string;
+}
+
+const testOpenPort = async () => {
+  const res: NetResult = await invoke('is_port_open', {host: "8.138.224.34", port: 3306})
+  console.log(res.result)
+  console.log(res.reason)
+
+  try {
+    await invoke('is_port_open', {host: "8.138.224.34", port: 3305})
+  } catch (error) {
+    console.log(error)
+  }
 }
 </script>
 
@@ -37,6 +54,7 @@ const getSnowId = async () => {
   <el-button @click.stop="testNotice">发送通知</el-button>
   <el-button @click.stop="startFlashingTrayIcon">闪烁</el-button>
   <el-button @click.stop="getSnowId">生成ID</el-button>
+  <el-button @click.stop="testOpenPort">测试端口</el-button>
   <el-input v-model="snowId"></el-input>
 </template>
 
