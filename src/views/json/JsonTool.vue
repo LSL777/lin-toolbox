@@ -42,158 +42,102 @@ const showOutput = (message, type = "") => {
   outputDiv.textContent = message;
 }
 
-// 新增：将字符串转换为小写驼峰格式
-const toCamelCase = (str) => {
-  return str.replace(/[-_][a-z]/g, (match) =>
-    match.charAt(1).toUpperCase())
-    .replace(/^[A-Z]/, (match) => match.toLowerCase());
+
+function capitalize (str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// 新增：将字符串转换为首字母大写的驼峰格式
-const toPascalCase = (str) => {
-  const camelCase = toCamelCase(str);
-  return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+function jsTypeToJava (val) {
+  const t = typeof val;
+  if (t === "number") return Number.isInteger(val) ? "Integer" : "Double";
+  if (t === "string") return "String";
+  if (t === "boolean") return "Boolean";
+  return "Object";
 }
 
-// 新增：转换JSON为Java Bean对象
-const convertToJavaBean = () => {
-  const input = document.getElementById('jsonInput').value;
+function generate () {
+  const jsonStr = document.getElementById("jsonInput").value.trim();
+  const className = capitalize(document.getElementById("className").value.trim()) || "Root";
+  const useLombok = document.getElementById("useLombok").checked;
+
+  let json;
   try {
-    const parsed = JSON.parse(input);
-    let javaCode = '';
-
-    // 处理JSON对象
-    if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-      javaCode = convertObjectToJavaClass(parsed, 'RootBean');
-    }
-    // 处理JSON数组
-    else if (Array.isArray(parsed)) {
-      javaCode = convertArrayToJavaClass(parsed);
-    }
-    // 处理其他类型
-    else {
-      javaCode = convertPrimitiveToJavaClass(parsed);
-    }
-
-    document.getElementById('afterTreatment').value = javaCode;
-    showOutput("✅ 已生成 Java Bean 代码", "success");
+    json = JSON.parse(jsonStr);
   } catch (e) {
-    showOutput("❌ 转换失败：" + e.message, "error");
+    alert("请输入有效的 JSON！");
+    return;
   }
-}
 
-// 新增：转换对象为Java类
-const convertObjectToJavaClass = (obj, className) => {
-  let fields = '';
-  let gettersSetters = '';
-  let innerClasses = '';
-
-  for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      const value = obj[key];
-      const camelKey = toCamelCase(key);
-      const pascalKey = toPascalCase(key);
-      let fieldType = 'Object';
-      let fieldDeclaration = '';
-
-      // 根据值类型推断Java类型
-      if (value === null) {
-        fieldType = 'Object';
-      } else if (Array.isArray(value)) {
-        fieldType = convertArrayType(value, pascalKey);
-      } else if (typeof value === 'object') {
-        fieldType = pascalKey + 'Bean';
-        innerClasses += '\n\n' + convertObjectToJavaClass(value, fieldType);
-      } else {
-        fieldType = getPrimitiveType(value);
+  const classes = {};
+  function parseObject (obj, name) {
+    if (classes[name]) return;
+    const fields = [];
+    for (const key in obj) {
+      const val = obj[key];
+      let type = "Object";
+      if (typeof val === "number") {
+        type = Number.isInteger(val) ? "Integer" : "Double";
+      } else if (typeof val === "string") {
+        type = "String";
+      } else if (typeof val === "boolean") {
+        type = "Boolean";
+      } else if (Array.isArray(val)) {
+        if (val.length > 0) {
+          const first = val[0];
+          const itemType = typeof first === "object"
+              ? capitalize(key) + "Item"
+              : jsTypeToJava(first);
+          if (typeof first === "object") parseObject(first, itemType);
+          type = `List<${itemType}>`;
+        } else {
+          type = "List<Object>";
+        }
+      } else if (typeof val === "object" && val !== null) {
+        const subName = capitalize(key);
+        parseObject(val, subName);
+        type = subName;
       }
-
-      // 生成字段声明
-      fieldDeclaration = `    private ${fieldType} ${camelKey};`;
-      fields += fieldDeclaration + '\n';
-
-      // 生成getter和setter
-      gettersSetters += `
-    public ${fieldType} get${pascalKey}() {
-        return this.${camelKey};
+      fields.push({ key, type });
     }
-
-    public void set${pascalKey}(${fieldType} ${camelKey}) {
-        this.${camelKey} = ${camelKey};
-    }\n`;
-    }
+    classes[name] = fields;
   }
 
-  // 组合成完整的Java类
-  return `public class ${className} {${fields ? '\n' + fields : ''}
-${gettersSetters}}${innerClasses}`;
-}
+  parseObject(json, className);
 
-// 新增：转换数组类型
-const convertArrayType = (array, prefix) => {
-  if (array.length === 0) return 'List<Object>';
+  let code = "";
+  const importLombok = useLombok ? "import lombok.Data;\n" : "";
+  const importList = Object.values(classes).some(f => f.some(v => v.type.startsWith("List<")))
+      ? "import java.util.List;\n"
+      : "";
 
-  const firstElement = array[0];
-  let elementType = 'Object';
-
-  if (Array.isArray(firstElement)) {
-    elementType = 'List<' + convertArrayType(firstElement, prefix) + '>';
-  } else if (typeof firstElement === 'object' && firstElement !== null) {
-    elementType = prefix + 'ItemBean';
-  } else {
-    elementType = getPrimitiveType(firstElement);
+  for (const [cls, fields] of Object.entries(classes).reverse()) {
+    code += useLombok ? "@Data\n" : "";
+    code += `public class ${cls} {\n`;
+    fields.forEach(f => {
+      code += `    private ${f.type} ${f.key};\n`;
+    });
+    if (!useLombok) {
+      code += "\n";
+      fields.forEach(f => {
+        const capKey = capitalize(f.key);
+        code += `    public ${f.type} get${capKey}() { return ${f.key}; }\n`;
+        code += `    public void set${capKey}(${f.type} ${f.key}) { this.${f.key} = ${f.key}; }\n`;
+      });
+    }
+    code += "}\n\n";
   }
 
-  return 'List<' + elementType + '>';
+  document.getElementById("convertOutput").textContent =
+      importLombok + importList + "\n" + code.trim();
 }
 
-// 新增：获取基本类型对应的Java类型
-const getPrimitiveType = (value) => {
-  if (typeof value === 'string') return 'String';
-  if (typeof value === 'number') return Number.isInteger(value) ? 'Integer' : 'Double';
-  if (typeof value === 'boolean') return 'Boolean';
-  return 'Object';
+function copyCode () {
+  const code = document.getElementById("convertOutput").textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    alert("代码已复制到剪贴板！");
+  });
 }
 
-// 新增：处理数组转换
-const convertArrayToJavaClass = (array) => {
-  if (array.length === 0) return '// 空数组无法推断类型';
-
-  const firstItem = array[0];
-  let itemType = 'Object';
-
-  if (typeof firstItem === 'object' && firstItem !== null) {
-    return convertObjectToJavaClass(firstItem, 'ItemBean');
-  }
-
-  return `public class ItemBean {
-    private ${getPrimitiveType(firstItem)} value;
-    
-    public ${getPrimitiveType(firstItem)} getValue() {
-        return value;
-    }
-    
-    public void setValue(${getPrimitiveType(firstItem)} value) {
-        this.value = value;
-    }
-}`;
-}
-
-// 新增：处理基本类型转换
-const convertPrimitiveToJavaClass = (value) => {
-  const type = getPrimitiveType(value);
-  return `public class ValueBean {
-      private ${type} value;
-      
-      public ${type} getValue() {
-          return value;
-      }
-      
-      public void setValue(${type} value) {
-          this.value = value;
-      }
-  }`;
-}
 </script>
 
 <template>
@@ -209,10 +153,30 @@ const convertPrimitiveToJavaClass = (value) => {
     <button class="format-btn" @click.stop="formatJSON()">格式化</button>
     <button class="minify-btn" @click.stop="minifyJSON()">压缩</button>
     <button class="validate-btn" @click.stop="validateJSON()">校验格式</button>
-    <button class="convert-btn" @click.stop="convertToJavaBean()">转Java Bean</button>
   </div>
 
   <div id="output"></div>
+
+  <el-divider />
+
+  <h2>🧩 JSON 转 Java 类生成器</h2>
+
+  <label>类名（首字母大写）：
+    <input type="text" id="className" value="Root" />
+  </label>
+  <label style="margin-left: 20px;">
+    <input type="checkbox" id="useLombok" />
+    使用 @Data (Lombok)
+  </label>
+  <br />
+
+  <textarea id="jsonInput" placeholder="请输入 JSON 数据..."></textarea>
+  <br />
+  <button class="btn" @click.stop="generate">生成 Java 类代码</button>
+  <button class="btn" @click.stop="copyCode()">复制代码</button>
+
+  <h3>Java 类代码：</h3>
+  <pre id="convertOutput"></pre>
 </template>
 
 <style scoped>
@@ -239,30 +203,39 @@ textarea {
   margin-bottom: 10px;
 }
 
-button {
+button:hover {
+  opacity: 0.9;
+}
+
+.format-btn {
   padding: 10px 20px;
   font-size: 14px;
   cursor: pointer;
   border: none;
   border-radius: 4px;
   transition: background 0.3s ease;
-}
-
-button:hover {
-  opacity: 0.9;
-}
-
-.format-btn {
   background-color: #4caf50;
   color: white;
 }
 
 .minify-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  transition: background 0.3s ease;
   background-color: #2196f3;
   color: white;
 }
 
 .validate-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  transition: background 0.3s ease;
   background-color: #ff9800;
   color: white;
 }
@@ -303,5 +276,28 @@ button:hover {
   position: absolute;
   right: 4px;
   top: 4px;
+}
+
+
+#jsonInput {
+  width: 100%;
+  height: 500px;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+pre {
+  background: #1e1e1e;
+  color: #dcdcdc;
+  padding: 16px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  border-radius: 6px;
+}
+
+.btn {
+  margin: 10px 12px 10px 0;
+  padding: 6px 12px;
+  cursor: pointer;
 }
 </style>
