@@ -1,12 +1,10 @@
 <script setup>
-import { ElMessage } from "element-plus";
 
 const formatJSON = () => {
   const input = document.getElementById('jsonInput').value;
   try {
     const parsed = JSON.parse(input);
-    const formatted = JSON.stringify(parsed, null, 2);
-    document.getElementById('afterTreatment').value = formatted;
+    document.getElementById('afterTreatment').value = JSON.stringify(parsed, null, 2);
     showOutput("✅ JSON 已格式化", "success");
   } catch (e) {
     showOutput("❌ JSON 格式错误：" + e.message, "error");
@@ -56,7 +54,7 @@ function jsTypeToJava (val) {
 }
 
 function generate () {
-  const jsonStr = document.getElementById("jsonInput").value.trim();
+  const jsonStr = document.getElementById("jsonInputConvert").value.trim();
   const className = capitalize(document.getElementById("className").value.trim()) || "Root";
   const useLombok = document.getElementById("useLombok").checked;
 
@@ -170,7 +168,7 @@ function copyCode () {
   </label>
   <br />
 
-  <textarea id="jsonInput" placeholder="请输入 JSON 数据..."></textarea>
+  <textarea id="jsonInputConvert" placeholder="请输入 JSON 数据..."></textarea>
   <br />
   <button class="btn" @click.stop="generate">生成 Java 类代码</button>
   <button class="btn" @click.stop="copyCode()">复制代码</button>
@@ -279,11 +277,12 @@ button:hover {
 }
 
 
-#jsonInput {
+#jsonInputConvert {
   width: 100%;
   height: 500px;
   font-family: monospace;
   font-size: 14px;
+  margin-top: 12px;
 }
 
 pre {

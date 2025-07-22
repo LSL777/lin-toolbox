@@ -22,6 +22,9 @@
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
     "notification:allow-notify",
-    "notification:default"
+    "notification:default",
+    "sql:allow-load",
+    "sql:default",
+    "sql:allow-execute"
   ]
 }

@@ -2,6 +2,7 @@
 import {sendNotification} from "@tauri-apps/plugin-notification";
 import {onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
+import {dayjs} from "element-plus";
 
 onMounted(() => {
   const str = "620922200110222167";
@@ -48,6 +49,32 @@ const testOpenPort = async () => {
     console.log(error)
   }
 }
+
+const createRemindTask = async () => {
+  const todo = {
+    id: 123,
+    content: "测试任务",
+    remind_time: dayjs("2025-07-22 10:42:00").format("YYYY-MM-DD HH:mm:ss"),
+  };
+  await invoke('schedule_reminder', {todo: todo});
+}
+
+const sendNotificationOnRust = async () => {
+  await invoke("send_notification")
+}
+
+const operateDatabaseWithRust = async () => {
+  await invoke("select_test")
+}
+
+const createCronTask = async () => {
+  const task = {
+    id: "555",
+    content: "String",
+    cron_expr: "0/30 * * * * ?",
+  };
+  await invoke("schedule_cron_task", {task: task})
+}
 </script>
 
 <template>
@@ -55,6 +82,10 @@ const testOpenPort = async () => {
   <el-button @click.stop="startFlashingTrayIcon">闪烁</el-button>
   <el-button @click.stop="getSnowId">生成ID</el-button>
   <el-button @click.stop="testOpenPort">测试端口</el-button>
+  <el-button @click.stop="createRemindTask">创建提醒任务</el-button>
+  <el-button @click.stop="sendNotificationOnRust">测试rust调用系统通知</el-button>
+  <el-button @click.stop="operateDatabaseWithRust">rust操作数据库</el-button>
+  <el-button @click.stop="createCronTask">创建cron任务</el-button>
   <el-input v-model="snowId"></el-input>
 </template>
 

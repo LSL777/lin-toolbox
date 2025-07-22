@@ -2,6 +2,7 @@ pub mod utils {
     pub mod random_util;
     pub mod snowflake;
     pub mod network_util;
+    pub mod scheduled_tasks;
 }
 
 use std::sync::Arc;
@@ -10,8 +11,10 @@ use utils::random_util::{
     build_bank_info, build_id_card, build_name, build_phone, build_table_data,
 };
 
-use utils::snowflake::generate_snowflake_id;
+pub use utils::scheduled_tasks::{schedule_reminder, send_notification, schedule_cron_task};
+
 use utils::network_util::is_port_open;
+use utils::snowflake::generate_snowflake_id;
 
 use tauri::{
     image::Image,
@@ -26,6 +29,7 @@ pub use utils::snowflake::Snowflake;
 pub fn run() {
     tauri::Builder::default()
         .manage(Arc::new(Snowflake::new(1, 2)))
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
@@ -35,7 +39,10 @@ pub fn run() {
             build_bank_info,
             build_table_data,
             generate_snowflake_id,
-            is_port_open
+            is_port_open,
+            schedule_reminder,
+            send_notification,
+            schedule_cron_task
         ])
         .setup(|app| {
             let exit_icon_image = Image::from_bytes(include_bytes!("../icons/exit.png")).unwrap();

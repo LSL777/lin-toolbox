@@ -53,6 +53,14 @@ const router: Router = createRouter({
                         name: '网络工具'
                     },
                     component: () => import('@/views/network/Network.vue')
+                },
+                {
+                    path: '/todo_list',
+                    name: 'todolist',
+                    meta: {
+                        name: '待办事项'
+                    },
+                    component: () => import('@/views/todolist/ToDoList.vue')
                 }
             ]
         }

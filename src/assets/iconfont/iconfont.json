@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "11121522",
+      "name": "待办事项",
+      "font_class": "daibanshixiang",
+      "unicode": "e642",
+      "unicode_decimal": 58946
+    },
+    {
       "icon_id": "39694253",
       "name": "接入网络",
       "font_class": "jieruwangluodaojisuanji",

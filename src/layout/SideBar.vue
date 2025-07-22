@@ -7,47 +7,89 @@
     <el-menu :default-active="'/build_info'" router :collapse="isCollapse" background-color="#F3E9FF"
              text-color="#fff"
              active-text-color="#8A77C1">
-      <el-menu-item index="/build_info">
+      <el-menu-item v-for="item in menuList" :key="item.id" :index="item.url">
         <el-icon>
-          <IconFont name="xinxi"/>
+          <IconFont :name="item.icon" />
         </el-icon>
-        <span>生成信息</span>
+        <span>{{item.title}}</span>
       </el-menu-item>
-      <el-menu-item index="/json">
-        <el-icon>
-          <IconFont name="json"/>
-        </el-icon>
-        <span>JSON工具</span>
-      </el-menu-item>
-      <el-menu-item index="/regex">
-        <el-icon>
-          <IconFont name="zhengzebiaodashi_1"/>
-        </el-icon>
-        <span>正则表达式</span>
-      </el-menu-item>
-      <el-menu-item index="/network">
-        <el-icon>
-          <IconFont name="jieruwangluodaojisuanji"/>
-        </el-icon>
-        <span>网络工具</span>
-      </el-menu-item>
-      <el-menu-item index="/test">
-        <el-icon>
-          <IconFont name="ceshi"/>
-        </el-icon>
-        <span>测试页面</span>
-      </el-menu-item>
+<!--      <el-menu-item index="/build_info">-->
+<!--        <el-icon>-->
+<!--          <IconFont name="xinxi"/>-->
+<!--        </el-icon>-->
+<!--        <span>生成信息</span>-->
+<!--      </el-menu-item>-->
+<!--      <el-menu-item index="/json">-->
+<!--        <el-icon>-->
+<!--          <IconFont name="json"/>-->
+<!--        </el-icon>-->
+<!--        <span>JSON工具</span>-->
+<!--      </el-menu-item>-->
+<!--      <el-menu-item index="/regex">-->
+<!--        <el-icon>-->
+<!--          <IconFont name="zhengzebiaodashi_1"/>-->
+<!--        </el-icon>-->
+<!--        <span>正则表达式</span>-->
+<!--      </el-menu-item>-->
+<!--      <el-menu-item index="/network">-->
+<!--        <el-icon>-->
+<!--          <IconFont name="jieruwangluodaojisuanji"/>-->
+<!--        </el-icon>-->
+<!--        <span>网络工具</span>-->
+<!--      </el-menu-item>-->
+<!--      <el-menu-item index="/test">-->
+<!--        <el-icon>-->
+<!--          <IconFont name="ceshi"/>-->
+<!--        </el-icon>-->
+<!--        <span>测试页面</span>-->
+<!--      </el-menu-item>-->
     </el-menu>
   </div>
 </template>
 
 <script setup>
-import {ref} from 'vue'
-import {useRoute} from "vue-router";
+import  { ref } from 'vue'
 import IconFont from "@/components/IconFont.vue";
-
-const route = useRoute();
 const isCollapse = ref(false)
+
+const menuList = [
+  {
+    id: 1,
+    title: '生成信息',
+    url: '/build_info',
+    icon: 'xinxi'
+  },
+  {
+    id: 2,
+    title: 'JSON工具',
+    url: '/json',
+    icon: 'json'
+  },
+  {
+    id: 3,
+    title: '正则表达式',
+    url: '/regex',
+    icon: 'zhengzebiaodashi_1'
+  },
+  {
+    id: 4,
+    title: '网络工具',
+    url: '/network',
+    icon: 'jieruwangluodaojisuanji'
+  },
+  {
+    id: 5,
+    title: '待办事项',
+    url: '/todo_list',
+    icon: 'daibanshixiang'
+  },
+  {
+    id: 6,
+    title: '测试页面',
+    url: '/test',
+    icon: 'ceshi'
+  }
+]
 </script>
 
 <style scoped>
