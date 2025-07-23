@@ -1,10 +1,15 @@
 use chrono::{Local, NaiveDateTime, TimeZone};
+use once_cell::sync::Lazy;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_notification::NotificationExt;
+use tokio::sync::OnceCell;
 use tokio::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
+/// 一次性延迟任务对象
 #[derive(Deserialize, Debug)]
 pub struct Todo {
     pub id: String,
@@ -13,6 +18,20 @@ pub struct Todo {
     pub remind_time: String,
 }
 
+/// cron任务对象
+#[derive(Deserialize)]
+pub struct CronTask {
+    pub id: String,
+    pub content: String,
+    pub cron_expr: String,
+}
+
+/// 全局任务池，Key 是 CronTask.id，Value 是 Job UUID
+pub static TASK_POOL: Lazy<Mutex<HashMap<String, uuid::Uuid>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+/// 全局任务调度器
+pub static SCHEDULER: OnceCell<JobScheduler> = OnceCell::const_new();
+
+/// 创建一次性延迟任务命令
 #[tauri::command]
 pub async fn schedule_reminder(app_handle: AppHandle, todo: Todo) -> Result<(), String> {
     let format = "%Y-%m-%d %H:%M:%S";
@@ -29,6 +48,7 @@ pub async fn schedule_reminder(app_handle: AppHandle, todo: Todo) -> Result<(), 
     Ok(())
 }
 
+/// 发送通知
 /// - task_type: 0: 非周期性任务 1: 周期性任务
 #[tauri::command]
 pub fn send_notification(app_handle: AppHandle, todo_id: String, content: String, task_type: i8) {
@@ -51,18 +71,41 @@ pub fn send_notification(app_handle: AppHandle, todo_id: String, content: String
         .unwrap();
 }
 
-#[derive(Deserialize)]
-pub struct CronTask {
-    pub id: String,
-    pub content: String,
-    pub cron_expr: String,
+
+/// 取消cron表达式任务
+#[tauri::command]
+pub async fn cancel_cron_task(id: String) -> Result<String, String> {
+    // 提前移除任务 ID，避免跨 .await 锁住 Mutex
+    let job_uuid = {
+        let mut pool = TASK_POOL.lock().unwrap();
+        pool.remove(&id).ok_or_else(|| format!("No task found with id: {}", id))?
+    };
+
+    // 获取 scheduler
+    let scheduler = SCHEDULER
+        .get()
+        .ok_or_else(|| "Scheduler not initialized".to_string())?;
+
+    println!("Canceled: {}", &job_uuid);
+    scheduler
+        .remove(&job_uuid)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(format!("Task {} canceled", id))
 }
 
+
+
+/// 创建cron表达式定时任务
 #[tauri::command]
 pub async fn schedule_cron_task(app_handle: AppHandle, task: CronTask) -> Result<String, String> {
-    let scheduler = JobScheduler::new().await.map_err(|e| e.to_string())?;
+    let task_id = task.id.clone();
 
-    // 构建 cron 任务
+    let scheduler = SCHEDULER
+        .get()
+        .ok_or_else(|| "Scheduler not initialized".to_string())?;
+
     let job = Job::new_async(&task.cron_expr, move |_uuid, _l| {
         let app_handle = app_handle.clone();
         let content = task.content.clone();
@@ -74,20 +117,28 @@ pub async fn schedule_cron_task(app_handle: AppHandle, task: CronTask) -> Result
         })
     }).map_err(|e| format!("解析 cron 表达式失败: {}", e))?;
 
-    let job_id_future = scheduler.add(job);
-    let job_id = job_id_future.await.map_err(|e| e.to_string())?;
-    scheduler.start().await.expect("TODO: panic message");
-    
+    let job_id = scheduler
+        .add(job)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    TASK_POOL
+        .lock()
+        .unwrap()
+        .insert(task_id.clone(), job_id);
+
+    println!("task_id: {}, job_id: {}", task_id, job_id);
     Ok(format!("任务已创建，任务ID: {}", job_id))
 }
 
+
+/// 创建一次性延迟任务
 async fn schedule_one_time_reminder(
     app_handle: AppHandle,
     todo_id: String,
     remind_time: NaiveDateTime,
     content: String,
 ) {
-    // 将提醒时间当作本地时间来解析
     let remind_time_local = Local.from_local_datetime(&remind_time).single();
 
     match remind_time_local {

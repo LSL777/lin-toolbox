@@ -3,6 +3,7 @@ import {onMounted, onUnmounted, ref} from 'vue';
 import {getCurrentWebviewWindow} from '@tauri-apps/api/webviewWindow';
 import {UnlistenFn} from "@tauri-apps/api/event";
 import Database from "@tauri-apps/plugin-sql";
+import {dayjs} from "element-plus";
 
 interface TodoItem {
   todo_id: string;
@@ -18,7 +19,8 @@ const db = ref<Database | null>(null);
 const updateStatus = async (id: any, type: number) => {
   if (type === 0) {
     console.log("更新非周期性任务状态")
-    await db.value?.execute("update todo_list set status = $1 where id = $2", [2, id])
+    await db.value?.execute("update todo_list set status = $1, effective = $2, update_time = $3 where id = $4",
+        [2, 0, dayjs().format('YYYY-MM-DD HH:mm:ss'), id])
   }
 }
 

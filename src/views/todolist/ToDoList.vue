@@ -208,9 +208,14 @@ const resetForm = (formEl: FormInstance | undefined) => {
   getTableData()
 }
 
-const handleDelete = (id: number | string) => {
+const handleCancelTask = (id: BigInt, isRecurring: number) => {
+  console.log(id.toString())
+  if (isRecurring !== 1) {
+    ElMessage.info({type: 'info', message: '非周期性任务无法取消'});
+    return
+  }
   ElMessageBox.confirm(
-      '确认删除该数据?',
+      '确认取消该任务?',
       '警告',
       {
         confirmButtonText: '确定',
@@ -219,14 +224,24 @@ const handleDelete = (id: number | string) => {
       }
   )
       .then(() => {
-        doDelete(id)
+        doCancelTask(id)
       })
       .catch(() => {
         ElMessage({
           type: 'info',
-          message: '取消删除',
+          message: '取消[取消任务]',
         })
       })
+}
+
+const doCancelTask = async (id: BigInt) => {
+  try {
+    console.log(id.toString())
+    await invoke("cancel_cron_task", {id: id.toString()})
+    ElMessage({type: 'success', message: '取消任务成功'})
+  } catch (e) {
+    ElMessage({type: 'error', message: `取消任务失败${e}`})
+  }
 }
 
 const submitAddForm = (formEl: FormInstance | undefined) => {
@@ -238,14 +253,6 @@ const submitAddForm = (formEl: FormInstance | undefined) => {
       console.log('error submit!')
     }
   })
-}
-
-const doDelete = async (id: number | string) => {
-  const result = await db.value?.execute("delete from todo_list where id = $1", [id])
-  if (result !== undefined && result !== null && result.rowsAffected === 1) {
-    ElMessage({message: '删除成功', type: 'success'})
-    resetForm(queryFormRef.value)
-  }
 }
 
 const doSubmitForm = async () => {
@@ -426,7 +433,7 @@ onUnmounted(() => {
           {{ getLabelByValue(scope.row.is_recurring, recurringOptions) }}
         </template>
       </el-table-column>
-      <el-table-column prop="cron_expression" label="cron表达式"/>
+      <el-table-column prop="cron_expression" label="cron表达式" width="116px"/>
       <el-table-column prop="status" label="状态" width="96px">
         <template #default="scope">
           {{ getLabelByValue(scope.row.status, statusOptions) }}
@@ -438,11 +445,10 @@ onUnmounted(() => {
         </template>
       </el-table-column>
       <el-table-column prop="create_time" label="创建时间"/>
-      <el-table-column prop="update_time" label="更新时间"/>
-      <el-table-column fixed="right" label="操作" width="72px">
+      <el-table-column fixed="right" label="操作" width="144px">
         <template #default="scope">
-          <el-button link type="primary" @click="handleDelete(scope.row.id)">
-            删除
+          <el-button link type="warning" @click="handleCancelTask(BigInt(scope.row.id), scope.row.is_recurring)">
+            取消任务
           </el-button>
         </template>
       </el-table-column>

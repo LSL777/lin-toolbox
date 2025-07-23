@@ -3,6 +3,8 @@ import {sendNotification} from "@tauri-apps/plugin-notification";
 import {onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {dayjs} from "element-plus";
+import { isValidCron } from 'cron-validator';
+
 
 onMounted(() => {
   const str = "620922200110222167";
@@ -12,6 +14,13 @@ onMounted(() => {
   const matches = str.match(regex);
   console.log(matches); // 输出: ['123', '456']
 })
+
+const cronExpression = ref<string>('')
+
+// 校验 Rust 可接受的带秒的 6 位 cron 表达式
+const validateCron = () => {
+  console.log(isValidCron(cronExpression.value, { seconds: true }));
+}
 
 const startFlashingTrayIcon = () => {
   invoke('toggle_tray_icon')
@@ -87,6 +96,8 @@ const createCronTask = async () => {
   <el-button @click.stop="operateDatabaseWithRust">rust操作数据库</el-button>
   <el-button @click.stop="createCronTask">创建cron任务</el-button>
   <el-input v-model="snowId"></el-input>
+  <el-input v-model="cronExpression"></el-input>
+  <el-button @click.stop="validateCron">校验cron表达式</el-button>
 </template>
 
 <style scoped>

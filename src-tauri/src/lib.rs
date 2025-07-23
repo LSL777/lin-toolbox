@@ -1,17 +1,20 @@
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 pub mod utils {
-    pub mod random_util;
-    pub mod snowflake;
     pub mod network_util;
+    pub mod random_util;
     pub mod scheduled_tasks;
+    pub mod snowflake;
 }
 
 use std::sync::Arc;
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+
 use utils::random_util::{
     build_bank_info, build_id_card, build_name, build_phone, build_table_data,
 };
 
-pub use utils::scheduled_tasks::{schedule_reminder, send_notification, schedule_cron_task};
+pub use utils::scheduled_tasks::{
+    cancel_cron_task, schedule_cron_task, schedule_reminder, send_notification,
+};
 
 use utils::network_util::is_port_open;
 use utils::snowflake::generate_snowflake_id;
@@ -42,9 +45,25 @@ pub fn run() {
             is_port_open,
             schedule_reminder,
             send_notification,
-            schedule_cron_task
+            schedule_cron_task,
+            cancel_cron_task
         ])
         .setup(|app| {
+            tauri::async_runtime::spawn(async {
+                use crate::utils::scheduled_tasks::SCHEDULER;
+
+                if let Err(e) = SCHEDULER
+                    .get_or_try_init(tokio_cron_scheduler::JobScheduler::new)
+                    .await
+                {
+                    eprintln!("Scheduler init failed: {}", e);
+                } else if let Err(e) = SCHEDULER.get().unwrap().start().await {
+                    eprintln!("Scheduler start failed: {}", e);
+                } else {
+                    println!("Job scheduler started ✅");
+                }
+            });
+
             let exit_icon_image = Image::from_bytes(include_bytes!("../icons/exit.png")).unwrap();
             let show_hide_icon_image =
                 Image::from_bytes(include_bytes!("../icons/ShowHide.png")).unwrap();

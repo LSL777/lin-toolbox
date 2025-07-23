@@ -2121,6 +2121,7 @@ name = "lin-toolbox"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "once_cell",
  "rand 0.9.1",
  "serde",
  "serde_json",
@@ -2131,6 +2132,7 @@ dependencies = [
  "tauri-plugin-sql",
  "tokio",
  "tokio-cron-scheduler",
+ "uuid",
 ]
 
 [[package]]
