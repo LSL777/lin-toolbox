@@ -4,6 +4,11 @@ import {onMounted, onUnmounted, reactive, ref, watch} from 'vue';
 import {getLabelByValue} from "@/utils/KvUtil.ts";
 import {invoke} from "@tauri-apps/api/core";
 import {dayjs, ElMessage, ElMessageBox, FormInstance, FormRules} from "element-plus";
+import {isValidCron} from "cron-validator";
+
+interface CntRes {
+  total: number;
+}
 
 interface TodoTask {
   id: string;
@@ -72,7 +77,10 @@ const form = reactive({
   endTime: '',
   isRecurring: '',
   status: '',
-  effective: ''
+  effective: '',
+  current: 1,
+  size: 10,
+  total: 0,
 });
 
 const addFormRef = ref<FormInstance>()
@@ -115,7 +123,11 @@ const checkCronExpression = (rule: any, value: any, callback: any) => {
     if (!value) {
       callback(new Error('周期性任务cron表达式不能为空'))
     } else {
-      callback()
+      if (isValidCron(value, { seconds: true })) {
+        callback()
+      } else {
+        callback(new Error("cron表达式解析失败"))
+      }
     }
   }
 }
@@ -128,7 +140,7 @@ const addFormRules = reactive<FormRules<typeof addForm>>({
     {validator: checkRemindTime, trigger: ['blur', 'change']}
   ],
   cron_expression: [
-    {validator: checkCronExpression, trigger: ['blur', 'change']}
+    {validator: checkCronExpression, trigger: ['blur']}
   ]
 })
 
@@ -138,8 +150,17 @@ const addDialogFormVisible = ref(false)
 const showRemindTime = ref(false)
 const showCronExpression = ref(false)
 
+const handleCurrentChange = (val: number) => {
+  form.current = val
+  getTableData()
+}
+
 const getTableData = async () => {
+  let cntSql = "select count(*) as total from todo_list where 1 = 1 "
   let selectSql = "select * from todo_list where 1 = 1 "
+  const start = (form.current - 1) * form.size
+  let pageCondition = ` limit ${form.size} offset ${start}`
+  const orderCondition = " order by create_time desc "
   let condition = ""
   if (form.content !== undefined && form.content !== null && form.content !== '') {
     condition += `and content like '%${form.content}%' `
@@ -160,11 +181,15 @@ const getTableData = async () => {
     condition += `and effective = ${form.effective}`
   }
   if (condition !== "") {
-    selectSql += condition + " order by create_time desc"
+    selectSql += condition + orderCondition + pageCondition
+    cntSql += condition;
   } else {
-    selectSql += " order by create_time desc"
+    selectSql += orderCondition + pageCondition
   }
+
   tableData.value = (await db.value?.select(selectSql)) as TodoItem[] || [];
+  const res = (await db.value?.select(cntSql)) as CntRes[]
+  form.total = res[0].total || 0
 }
 
 const openAddDialog = () => {
@@ -287,22 +312,26 @@ onMounted(async () => {
 watch(
     () => addForm.is_recurring,
     (newValue) => {
-      // @ts-ignore
+      // @ts-ignore 周期性任务
       if (newValue === 1) {
         showCronExpression.value = true
         showRemindTime.value = false
         addForm.remind_time = ''
         addForm.cron_expression = ''
+        addForm.status = 1
         // @ts-ignore
       } else if (newValue === 0) {
+        // 非周期性任务
         showCronExpression.value = false
         showRemindTime.value = true
         addForm.remind_time = ''
         addForm.cron_expression = ''
+        addForm.status = 0
       } else {
         // 既不是 1 也不是 0，全部隐藏
         showCronExpression.value = false
         showRemindTime.value = false
+        addForm.status = 0
       }
     }
 )
@@ -418,6 +447,17 @@ onUnmounted(() => {
         </template>
       </el-table-column>
     </el-table>
+
+    <div style="margin-top: 12px">
+      <el-pagination
+          v-model:current-page="form.current"
+          :page-size="form.size"
+          background
+          layout="total, prev, pager, next"
+          :total="form.total"
+          @current-change="handleCurrentChange"
+      />
+    </div>
   </div>
 
   <!-- 添加对话框 start  -->
