@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_notification::NotificationExt;
 use tokio::sync::OnceCell;
+use tokio::task::JoinHandle;
 use tokio::time::Duration;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
@@ -31,22 +32,54 @@ pub static TASK_POOL: Lazy<Mutex<HashMap<String, uuid::Uuid>>> = Lazy::new(|| Mu
 /// 全局任务调度器
 pub static SCHEDULER: OnceCell<JobScheduler> = OnceCell::const_new();
 
+pub static ONE_TIME_TASK_POOL: Lazy<Mutex<HashMap<String, JoinHandle<()>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
 /// 创建一次性延迟任务命令
 #[tauri::command]
 pub async fn schedule_reminder(app_handle: AppHandle, todo: Todo) -> Result<(), String> {
     let format = "%Y-%m-%d %H:%M:%S";
 
-    // 解析提醒时间
     let remind_time = NaiveDateTime::parse_from_str(&todo.remind_time, format)
         .map_err(|e| format!("Failed to parse date time: {}", e))?;
 
-    // 启动定时任务
-    tokio::spawn(async move {
-        schedule_one_time_reminder(app_handle, todo.id, remind_time, todo.content).await;
-    });
+    let todo_id = todo.id.clone();
+    let app_handle_clone = app_handle.clone();
+    let content = todo.content.clone();
 
-    Ok(())
+    let remind_time_local = Local.from_local_datetime(&remind_time).single();
+    if let Some(remind_time_local) = remind_time_local {
+        let now = Local::now();
+        let delay = (remind_time_local - now).to_std().unwrap_or(Duration::from_secs(0));
+
+        let handle = tokio::spawn(async move {
+            println!("▶️ 开始等待任务 {}", &todo_id);
+            tokio::time::sleep(delay).await;
+            println!("🔔 发送通知任务 {}", &todo_id);
+            send_notification(app_handle_clone, todo_id.clone(), content, 0);
+        });
+
+
+        ONE_TIME_TASK_POOL.lock().unwrap().insert(todo.id, handle);
+        Ok(())
+    } else {
+        Err("无效的提醒时间".to_string())
+    }
 }
+
+
+#[tauri::command]
+pub fn cancel_reminder(id: String) -> Result<String, String> {
+    let mut pool = ONE_TIME_TASK_POOL.lock().unwrap();
+
+    if let Some(handle) = pool.remove(&id) {
+        handle.abort(); // 取消任务
+        Ok(format!("已取消提醒任务: {}", id))
+    } else {
+        Err(format!("未找到提醒任务: {}", id))
+    }
+}
+
+
 
 /// 发送通知
 /// - task_type: 0: 非周期性任务 1: 周期性任务
@@ -133,6 +166,7 @@ pub async fn schedule_cron_task(app_handle: AppHandle, task: CronTask) -> Result
 
 
 /// 创建一次性延迟任务
+#[warn(unused)]
 async fn schedule_one_time_reminder(
     app_handle: AppHandle,
     todo_id: String,

@@ -13,7 +13,7 @@ use utils::random_util::{
 };
 
 pub use utils::scheduled_tasks::{
-    cancel_cron_task, schedule_cron_task, schedule_reminder, send_notification,
+    cancel_cron_task, cancel_reminder, schedule_cron_task, schedule_reminder, send_notification,
 };
 
 use utils::network_util::is_port_open;
@@ -46,7 +46,8 @@ pub fn run() {
             schedule_reminder,
             send_notification,
             schedule_cron_task,
-            cancel_cron_task
+            cancel_cron_task,
+            cancel_reminder
         ])
         .setup(|app| {
             tauri::async_runtime::spawn(async {

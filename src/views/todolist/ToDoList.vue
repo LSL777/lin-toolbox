@@ -6,10 +6,16 @@ import {invoke} from "@tauri-apps/api/core";
 import {dayjs, ElMessage, ElMessageBox, FormInstance, FormRules} from "element-plus";
 import {isValidCron} from "cron-validator";
 
+/**
+ * 分页查询count统计响应对象
+ */
 interface CntRes {
   total: number;
 }
 
+/**
+ * 定时任务对象
+ */
 interface TodoTask {
   id: string;
   content: string;
@@ -17,6 +23,9 @@ interface TodoTask {
   cron_expr: String;
 }
 
+/**
+ * todo_list表映射对象
+ */
 interface TodoItem {
   id: string;
   content: string;
@@ -67,10 +76,12 @@ const effectiveOptions = [
   }
 ];
 
+// 表格查询参数表单对象
 const queryFormRef = ref<FormInstance>()
 
 const db = ref<Database | null>(null);
 
+// 表格查询参数
 const form = reactive({
   content: '',
   startTime: '',
@@ -197,11 +208,13 @@ const openAddDialog = () => {
   addFormRef.value?.resetFields()
 }
 
+// 条件分页查询待办事项列表
 const submitQueryForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await getTableData()
 }
 
+// 重置表格查询参数
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return
   formEl.resetFields()
@@ -209,11 +222,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
 }
 
 const handleCancelTask = (id: BigInt, isRecurring: number) => {
-  console.log(id.toString())
-  if (isRecurring !== 1) {
-    ElMessage.info({type: 'info', message: '非周期性任务无法取消'});
-    return
-  }
   ElMessageBox.confirm(
       '确认取消该任务?',
       '警告',
@@ -224,7 +232,7 @@ const handleCancelTask = (id: BigInt, isRecurring: number) => {
       }
   )
       .then(() => {
-        doCancelTask(id)
+        doCancelTask(id, isRecurring)
       })
       .catch(() => {
         ElMessage({
@@ -234,11 +242,20 @@ const handleCancelTask = (id: BigInt, isRecurring: number) => {
       })
 }
 
-const doCancelTask = async (id: BigInt) => {
+const doCancelTask = async (id: BigInt, isRecurring: number) => {
+  const idStr = id.toString()
   try {
-    console.log(id.toString())
-    await invoke("cancel_cron_task", {id: id.toString()})
+    if (isRecurring === 1) {
+      await invoke("cancel_cron_task", {id: idStr})
+      await db.value?.execute("update todo_list set status = $1, effective = $2, update_time = $3 where id = $4",
+          [2, 0, dayjs().format('YYYY-MM-DD HH:mm:ss'), idStr])
+    } else {
+      await invoke("cancel_reminder", {id: idStr})
+      await db.value?.execute("update todo_list set status = $1, effective = $2, update_time = $3 where id = $4",
+          [2, 0, dayjs().format('YYYY-MM-DD HH:mm:ss'), idStr])
+    }
     ElMessage({type: 'success', message: '取消任务成功'})
+    await getTableData()
   } catch (e) {
     ElMessage({type: 'error', message: `取消任务失败${e}`})
   }
@@ -250,7 +267,7 @@ const submitAddForm = (formEl: FormInstance | undefined) => {
     if (valid) {
       doSubmitForm()
     } else {
-      console.log('error submit!')
+      ElMessage({type: 'error', message: '添加待办事项参数校验不通过'})
     }
   })
 }
@@ -268,31 +285,37 @@ const doSubmitForm = async () => {
   };
 
   let result = null
-  // @ts-ignore
-  if (addForm.is_recurring === 1) {
-    result = await db.value?.execute(
-        "INSERT into todo_list (id, content, remind_time, is_recurring, cron_expression, status, effective, create_time, update_time)" +
-        " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [addForm.id, addForm.content, null, addForm.is_recurring, addForm.cron_expression, addForm.status, addForm.effective, addForm.create_time, addForm.update_time],
-    );
-    await createCronTaskToRust(task)
-  } else {
-    result = await db.value?.execute(
-        "INSERT into todo_list (id, content, remind_time, is_recurring, cron_expression, status, effective, create_time, update_time)" +
-        " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [addForm.id, addForm.content, addForm.remind_time, addForm.is_recurring, null, addForm.status, addForm.effective, addForm.create_time, addForm.update_time],
-    );
-    await createAperiodicityTaskToRust(task)
-  }
-  if (result != null && result.rowsAffected === 1) {
+  try {
+    // @ts-ignore
+    if (addForm.is_recurring === 1) {
+      result = await db.value?.execute(
+          "INSERT into todo_list (id, content, remind_time, is_recurring, cron_expression, status, effective, create_time, update_time)" +
+          " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [addForm.id, addForm.content, null, addForm.is_recurring, addForm.cron_expression, addForm.status, addForm.effective, addForm.create_time, addForm.update_time],
+      );
+      await createCronTaskToRust(task)
+    } else {
+      result = await db.value?.execute(
+          "INSERT into todo_list (id, content, remind_time, is_recurring, cron_expression, status, effective, create_time, update_time)" +
+          " VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [addForm.id, addForm.content, addForm.remind_time, addForm.is_recurring, null, addForm.status, addForm.effective, addForm.create_time, addForm.update_time],
+      );
+      await createAperiodicityTaskToRust(task)
+    }
+    if (result != null && result.rowsAffected === 1) {
+      closeAddDialog()
+      ElMessage({message: '创建待办事项成功', type: 'success'})
+      resetForm(queryFormRef.value)
+    } else {
+      ElMessage({message: '创建待办事项失败', type: 'error'})
+    }
+  } catch (e) {
     closeAddDialog()
-    ElMessage({message: '创建待办事项成功', type: 'success'})
-    resetForm(queryFormRef.value)
-  } else {
-    ElMessage({message: '创建待办事项失败', type: 'error'})
+    ElMessage({message: `创建待办事项异常，原因：${e}`, type: 'error'})
   }
 }
 
+// 调用rust后端创建非周期任务
 const createAperiodicityTaskToRust = async (todoTask: TodoTask) => {
   await invoke('schedule_reminder', {todo: todoTask});
 }
@@ -312,7 +335,7 @@ onMounted(async () => {
     db.value = await Database.load('sqlite:test.db');
     await getTableData()
   } catch (error) {
-    console.error('数据库加载失败:', error);
+    ElMessage({type: 'error', message: '数据库加载失败'})
   }
 });
 
@@ -335,7 +358,7 @@ watch(
         addForm.cron_expression = ''
         addForm.status = 0
       } else {
-        // 既不是 1 也不是 0，全部隐藏
+        // 既不是 1 也不是 0，全部隐藏 这个分支是处理回调和watch的执行顺序导致的打开表单cron表单项和提醒事件表单项不全部隐藏问题
         showCronExpression.value = false
         showRemindTime.value = false
         addForm.status = 0
@@ -354,11 +377,16 @@ watch(
 // create_time datetime, -- 创建时间
 // update_time datetime -- 修改时间
 // )
+// select id, content, cron_expression as cron_expr from todo_list where is_recurring = 1 and status = 1 and effective = 1;
+// select id, content, remind_time from todo_list where is_recurring = 0 and status = 0 and effective = 1;
 
 onUnmounted(() => {
   // 关闭数据库连接（如果需要）
   if (db.value) {
-    db.value.close().catch(err => console.error('关闭数据库失败:', err));
+    db.value.close().catch(err => {
+      ElMessage({type: 'error', message: '关闭数据库失败'});
+      console.log(err)
+    });
   }
 });
 </script>

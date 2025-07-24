@@ -4,6 +4,7 @@ import {onMounted, ref} from "vue";
 import {invoke} from "@tauri-apps/api/core";
 import {dayjs} from "element-plus";
 import { isValidCron } from 'cron-validator';
+import Database from "@tauri-apps/plugin-sql";
 
 
 onMounted(() => {
@@ -84,6 +85,11 @@ const createCronTask = async () => {
   };
   await invoke("schedule_cron_task", {task: task})
 }
+
+// const cleanTableData = async () => {
+//   const db = await Database.load('sqlite:test.db');
+//   await db.execute("delete from todo_list");
+// }
 </script>
 
 <template>
@@ -94,6 +100,7 @@ const createCronTask = async () => {
   <el-button @click.stop="createRemindTask">创建提醒任务</el-button>
   <el-button @click.stop="sendNotificationOnRust">测试rust调用系统通知</el-button>
   <el-button @click.stop="operateDatabaseWithRust">rust操作数据库</el-button>
+<!--  <el-button @click.stop="cleanTableData">清空表数据</el-button>-->
   <el-button @click.stop="createCronTask">创建cron任务</el-button>
   <el-input v-model="snowId"></el-input>
   <el-input v-model="cronExpression"></el-input>
